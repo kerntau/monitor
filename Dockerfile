@@ -13,8 +13,8 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 COPY --from=web /src/internal/site/dist ./internal/site/dist
-ARG TARGETOS=linux
-ARG TARGETARCH=amd64
+ARG TARGETOS
+ARG TARGETARCH
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -tags no_ui -trimpath -ldflags="-s -w" -o /monitor ./internal/cmd/hub
 
 FROM scratch
