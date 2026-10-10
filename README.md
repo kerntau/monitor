@@ -1,7 +1,7 @@
-# monitor / chenv
+# monitor
 
 基于 Beszel v0.21.0 的公开监控看板二开，保留 MIT 许可证及原版权声明。
-源码目录：`T:\monitor`，分支：`chenv-simplified`。
+项目仓库：[kerntau/monitor](https://github.com/kerntau/monitor)，主分支：`main`。默认站点品牌为 **chenv**，可在后台设置名称、favicon 和主题。
 
 ## 界面与基础功能
 
@@ -18,20 +18,23 @@
 
 ## 本地预览
 
-已运行的预览：<http://127.0.0.1:8091/>，管理员：<http://127.0.0.1:8091/chenv-admin>。
+默认本地访问：<http://127.0.0.1:8091/>，管理员：<http://127.0.0.1:8091/chenv-admin>。
 连续点击 Logo 5 次（每次间隔不超过 3 秒）也能打开管理员登录，手机同样支持。
 管理员使用现有 PocketBase 超级管理员邮箱和密码。公开导航不提供管理员链接。
 
-本地预览使用生产数据库副本，主机已暂停，避免连接生产 Agent。`.tmp` 内数据库／私钥／备份不加入 Git、不进入 Docker 镜像，不应对外分发。
+数据库、私钥和备份保存在部署者自己的数据目录中，不随源码分发。测试现有数据时请使用副本，并暂停主机，避免同时连接生产 Agent。
 
-本地重新构建：
+本地构建需要 Node.js 22 和 Go 1.27.1。Windows PowerShell：
 
 ```powershell
-cd T:\monitor
+git clone https://github.com/kerntau/monitor.git
+cd monitor
 npm.cmd --prefix internal/site ci
 npm.cmd --prefix internal/site run build
+New-Item -ItemType Directory -Force .tmp | Out-Null
 go build -tags no_ui -o .tmp/monitor.exe ./internal/cmd/hub
-.tmp/monitor.exe serve --http=127.0.0.1:8091 --dir=T:/monitor/.tmp/migration-copy
+.tmp/monitor.exe superuser create admin@example.com 'your-own-password' --dir=./monitor_data
+.tmp/monitor.exe serve --http=127.0.0.1:8091 --dir=./monitor_data
 ```
 
 修改页面后重新构建 Hub，因为前端产物嵌入二进制中；先停止运行中的旧进程再替换二进制。
@@ -39,6 +42,8 @@ go build -tags no_ui -o .tmp/monitor.exe ./internal/cmd/hub
 ## Docker
 
 ```sh
+git clone https://github.com/kerntau/monitor.git
+cd monitor
 cp .env.example .env
 docker compose build
 docker compose up -d
@@ -50,7 +55,9 @@ docker compose up -d
 docker compose exec monitor /monitor superuser create admin@example.com 'your-own-password' --dir=/monitor_data
 ```
 
-该命令中的邮箱／密码仅为占位内容，请使用自己的信息。已有库无需另建普通用户或 AUTO_LOGIN 账户。
+该命令中的邮箱／密码仅为占位内容，请使用自己的信息。已有库无需另建普通用户或 AUTO_LOGIN 账户。登录后台后新增服务器、复制 Agent 安装配置，再在“展示设置”中开启公开显示。
+
+默认 `MONITOR_BIND=127.0.0.1`、`MONITOR_PORT=8091`，可在 `.env` 中修改。通过其他设备直接访问时可将 `MONITOR_BIND` 改为 `0.0.0.0`；使用域名部署时可保持本机绑定并配置 HTTPS 反向代理。
 
 ## 接口与隐私
 
@@ -64,6 +71,6 @@ docker compose exec monitor /monitor superuser create admin@example.com 'your-ow
 
 ## 迁移、更新与回滚
 
-详见 [部署与回滚](docs/DEPLOYMENT.md) 和 [验证记录](docs/VALIDATION.md)。当前仅本地预览，尚未替换线上程序。
+详见 [部署与回滚](docs/DEPLOYMENT.md) 和 [验证记录](docs/VALIDATION.md)。上线前备份整个数据目录和原程序。Docker 部署文件已提供，当前开发环境没有 Docker Engine，尚未实际运行镜像构建验证。
 
 上游：<https://github.com/henrygd/beszel>。许可证：[MIT](LICENSE)。

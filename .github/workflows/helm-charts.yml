@@ -20,6 +20,7 @@ env:
 jobs:
   changes:
     name: Detect changed charts
+    if: github.repository == 'henrygd/beszel'
     runs-on: ubuntu-latest
     outputs:
       charts: ${{ steps.changes.outputs.charts }}
