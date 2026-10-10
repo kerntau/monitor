@@ -62,6 +62,9 @@ func (am *AlertManager) bindNetworkMonitorAlertEvents() {
 // using its exact payload (dashboard requests can replace the cached payload).
 // Omitted results and disconnected systems never imply recovery.
 func (am *AlertManager) HandleNetworkMonitorAlerts(systemRecord *core.Record, results map[string]monitor.Result) error {
+	if am.disabled {
+		return nil
+	}
 	if systemRecord.GetString("status") != "up" {
 		return nil
 	}

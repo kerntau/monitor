@@ -37,6 +37,9 @@ func cpuStateAlertValue(name string, breakdown []float64) (float64, bool) {
 }
 
 func (am *AlertManager) HandleSystemAlerts(systemRecord *core.Record, data *system.CombinedData) error {
+	if am.disabled {
+		return nil
+	}
 	// Systemd alerts are binary state, not numeric thresholds, so they're handled
 	// separately. They read their own state from the database and don't use data.
 	if err := am.HandleSystemdAlerts(systemRecord); err != nil {

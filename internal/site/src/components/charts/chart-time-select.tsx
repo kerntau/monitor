@@ -10,7 +10,7 @@ export default memo(function ChartTimeSelect({
 	className,
 	agentVersion,
 	chartTimeStore = $chartTime,
-	allowRealtime = true,
+	allowRealtime = !globalThis.BESZEL?.CHENV_MODE,
 }: {
 	className?: string
 	agentVersion: SemVer

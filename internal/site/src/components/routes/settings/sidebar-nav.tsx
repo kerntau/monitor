@@ -8,6 +8,8 @@ import { $router, Link, navigate } from "../../router"
 import { buttonVariants } from "../../ui/button"
 
 interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
+	value?: string
+	onValueChange?: (value: string) => void
 	items: {
 		href: string
 		title: string
@@ -18,15 +20,15 @@ interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
 	}[]
 }
 
-export function SidebarNav({ className, items, ...props }: SidebarNavProps) {
+export function SidebarNav({ className, items, value, onValueChange, ...props }: SidebarNavProps) {
 	const page = useStore($router)
 
 	return (
 		<>
 			{/* Mobile View */}
 			<div className="md:hidden">
-				<Select onValueChange={navigate} value={page?.path}>
-					<SelectTrigger className="w-full my-3.5">
+				<Select onValueChange={onValueChange ?? navigate} value={value ?? page?.path}>
+					<SelectTrigger className="w-full my-3.5" aria-label={props["aria-label"]}>
 						<SelectValue placeholder="Select page" />
 					</SelectTrigger>
 					<SelectContent>
@@ -52,6 +54,7 @@ export function SidebarNav({ className, items, ...props }: SidebarNavProps) {
 					if ((item.admin && !isAdmin()) || (item.noReadOnly && isReadOnlyUser())) {
 						return null
 					}
+					if (onValueChange) return <button type="button" key={item.href} onClick={() => onValueChange(item.href)} className={cn(buttonVariants({ variant: "ghost" }), "flex items-center gap-3 justify-start truncate duration-50", value === item.href ? "bg-muted hover:bg-accent/70" : "hover:bg-accent/50")}>{item.icon && <item.icon className="size-4 shrink-0"/>}<span className="truncate">{item.title}</span></button>
 					return (
 						<Link
 							onMouseEnter={() => item.preload?.()}

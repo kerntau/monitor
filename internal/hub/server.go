@@ -15,6 +15,7 @@ type PublicAppInfo struct {
 	HUB_VERSION         string
 	HUB_URL             string
 	OAUTH_DISABLE_POPUP bool `json:"OAUTH_DISABLE_POPUP,omitempty"`
+	CHENV_MODE          bool `json:"CHENV_MODE,omitempty"`
 }
 
 // modifyIndexHTML injects the public app information into the index.html content
@@ -41,6 +42,15 @@ func isAppRoute(urlPath, basePath string) bool {
 		}
 	}
 	urlPath = strings.TrimSuffix(urlPath, "/")
+	if chenvEnabled() {
+		if urlPath == "" || urlPath == "/chenv-admin" {
+			return true
+		}
+		if param, ok := strings.CutPrefix(urlPath, "/system/"); ok {
+			return param != "" && !strings.Contains(param, "/")
+		}
+		return false
+	}
 	switch urlPath {
 	case "", "/containers", "/smart", "/monitors", "/settings", "/forgot-password", "/request-otp":
 		return true
@@ -60,6 +70,10 @@ func getPublicAppInfo(hub *Hub) PublicAppInfo {
 		BASE_PATH:   strings.TrimSuffix(parsedURL.Path, "/") + "/",
 		HUB_VERSION: beszel.Version,
 		HUB_URL:     hub.appURL,
+	}
+	if chenvEnabled() {
+		info.HUB_URL = ""
+		info.CHENV_MODE = true
 	}
 	if val, _ := utils.GetEnv("OAUTH_DISABLE_POPUP"); val == "true" {
 		info.OAUTH_DISABLE_POPUP = true

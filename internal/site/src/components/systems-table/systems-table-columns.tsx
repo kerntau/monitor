@@ -40,6 +40,7 @@ import {
 import { batteryStateTranslations } from "@/lib/i18n"
 import { connectedWiFi, strongestWiFi, strongestWiFiSignal, wifiSignalState } from "@/lib/wifi"
 import type { SystemRecord, WiFi } from "@/types"
+import { useSystemManagement } from "@/lib/system-management-context"
 import { SystemDialog } from "../add-system"
 import AlertButton from "../alerts/alert-button"
 import { $router, Link } from "../router"
@@ -560,7 +561,7 @@ export function SystemsTableColumns(viewMode: "table" | "grid"): ColumnDef<Syste
 			size: 50,
 			cell: ({ row }) => (
 				<div className="relative z-10 flex justify-end items-center gap-1 -ms-3">
-					<AlertButton system={row.original} />
+					{!BESZEL.CHENV_MODE && <AlertButton system={row.original} />}
 					<ActionsButton system={row.original} />
 				</div>
 			),
@@ -728,7 +729,9 @@ export function IndicatorDot({ system, className }: { system: SystemRecord; clas
 }
 
 export const ActionsButton = memo(({ system }: { system: SystemRecord }) => {
-	const [deleteOpen, setDeleteOpen] = useState(false)
+	const adapter=useSystemManagement()
+ const readOnly=adapter ? false : isReadOnlyUser()
+ const [deleteOpen, setDeleteOpen] = useState(false)
 	const [editOpen, setEditOpen] = useState(false)
 	const editOpened = useRef(false)
 	const { t } = useLingui()
@@ -747,9 +750,10 @@ export const ActionsButton = memo(({ system }: { system: SystemRecord }) => {
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end">
-						{!isReadOnlyUser() && (
+						{!readOnly && (
 							<DropdownMenuItem
 								onSelect={() => {
+									if(adapter){adapter.edit(system);return}
 									editOpened.current = true
 									setEditOpen(true)
 								}}
@@ -759,8 +763,9 @@ export const ActionsButton = memo(({ system }: { system: SystemRecord }) => {
 							</DropdownMenuItem>
 						)}
 						<DropdownMenuItem
-							className={cn(isReadOnlyUser() && "hidden")}
+							className={cn(readOnly && "hidden")}
 							onClick={() => {
+								if(adapter){adapter.pause(system);return}
 								pb.collection("systems").update(id, {
 									status: status === SystemStatus.Paused ? SystemStatus.Pending : SystemStatus.Paused,
 								})
@@ -778,7 +783,8 @@ export const ActionsButton = memo(({ system }: { system: SystemRecord }) => {
 								</>
 							)}
 						</DropdownMenuItem>
-						<DropdownMenuItem onClick={() => copyToClipboard(name)}>
+						{adapter && <><DropdownMenuItem onSelect={()=>adapter.edit(system)}><TerminalSquareIcon className="me-2.5 size-4"/>Agent 安装</DropdownMenuItem><DropdownMenuItem onSelect={()=>adapter.display(system)}><PenBoxIcon className="me-2.5 size-4"/>展示设置</DropdownMenuItem></>}
+ <DropdownMenuItem onClick={() => copyToClipboard(name)}>
 							<CopyIcon className="me-2.5 size-4" />
 							<Trans>Copy name</Trans>
 						</DropdownMenuItem>
@@ -786,8 +792,8 @@ export const ActionsButton = memo(({ system }: { system: SystemRecord }) => {
 							<CopyIcon className="me-2.5 size-4" />
 							<Trans>Copy host</Trans>
 						</DropdownMenuItem>
-						<DropdownMenuSeparator className={cn(isReadOnlyUser() && "hidden")} />
-						<DropdownMenuItem className={cn(isReadOnlyUser() && "hidden")} onSelect={() => setDeleteOpen(true)}>
+						<DropdownMenuSeparator className={cn(readOnly && "hidden")} />
+						<DropdownMenuItem className={cn(readOnly && "hidden")} onSelect={() => setDeleteOpen(true)}>
 							<Trash2Icon className="me-2.5 size-4" />
 							<Trans>Delete</Trans>
 						</DropdownMenuItem>
@@ -817,7 +823,7 @@ export const ActionsButton = memo(({ system }: { system: SystemRecord }) => {
 							</AlertDialogCancel>
 							<AlertDialogAction
 								className={cn(buttonVariants({ variant: "destructive" }))}
-								onClick={() => pb.collection("systems").delete(id)}
+								onClick={() => adapter ? adapter.remove(system) : pb.collection("systems").delete(id)}
 							>
 								<Trans>Continue</Trans>
 							</AlertDialogAction>
@@ -826,5 +832,5 @@ export const ActionsButton = memo(({ system }: { system: SystemRecord }) => {
 				</AlertDialog>
 			</>
 		)
-	}, [id, status, host, name, system, t, deleteOpen, editOpen])
+	}, [id, status, host, name, system, t, deleteOpen, editOpen, adapter, readOnly])
 })

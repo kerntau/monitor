@@ -9,6 +9,7 @@ import (
 
 	"github.com/henrygd/beszel"
 	"github.com/henrygd/beszel/internal/hub"
+	"github.com/henrygd/beszel/internal/hub/utils"
 	_ "github.com/henrygd/beszel/internal/migrations"
 
 	"github.com/pocketbase/pocketbase"
@@ -52,7 +53,9 @@ func getBaseApp() *pocketbase.PocketBase {
 		Run:   hub.Update,
 	}
 	updateCmd.Flags().Bool("china-mirrors", false, "Use mirror (gh.beszel.dev) instead of GitHub")
-	baseApp.RootCmd.AddCommand(updateCmd)
+	if mode, _ := utils.GetEnv("CHENV_MODE"); mode == "false" {
+		baseApp.RootCmd.AddCommand(updateCmd)
+	}
 	// add health command
 	baseApp.RootCmd.AddCommand(newHealthCmd())
 

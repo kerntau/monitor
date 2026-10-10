@@ -32,6 +32,14 @@ import { $router, basePath, Link, navigate } from "./router"
 import { DropdownMenu, DropdownMenuTrigger } from "./ui/dropdown-menu"
 import { AppleIcon, DockerIcon, FreeBsdIcon, TuxIcon, WindowsIcon } from "./ui/icons"
 import { InputCopy } from "./ui/input-copy"
+import { toast } from "./ui/use-toast"
+
+export type SystemDialogAdapter = {
+	key: string
+	token: string
+	onSubmit: (data: Record<string, FormDataEntryValue>) => Promise<void>
+	onTokensClick?: () => void
+}
 
 // To avoid a refactor of the dialog, we will just keep this function as a "skeleton" for the actual dialog
 export function AddSystemDialog({ open, setOpen }: { open: boolean; setOpen: (open: boolean) => void }) {
@@ -63,17 +71,19 @@ let nextSystemToken: string | null = null
  * @param {function} props.setOpen - Function to set the open state of the dialog.
  * @param {SystemRecord} [props.system] - Optional system record for editing an existing system.
  */
-export const SystemDialog = ({ setOpen, system }: { setOpen: (open: boolean) => void; system?: SystemRecord }) => {
+export const SystemDialog = ({ setOpen, system, adapter }: { setOpen: (open: boolean) => void; system?: SystemRecord; adapter?: SystemDialogAdapter }) => {
 	const { t } = useLingui()
-	const publicKey = useStore($publicKey)
+	const storedPublicKey = useStore($publicKey)
+	const publicKey = adapter?.key ?? storedPublicKey
 	const port = useRef<HTMLInputElement>(null)
 	const [hostValue, setHostValue] = useState(system?.host ?? "")
 	const isUnixSocket = hostValue.startsWith("/")
 	const [tab, setTab] = useBrowserStorage("as-tab", "docker")
-	const [token, setToken] = useState(system?.token ?? "")
+	const [token, setToken] = useState(adapter?.token ?? system?.token ?? "")
 
 	useEffect(() => {
 		;(async () => {
+			if (adapter) { setToken(adapter.token); return }
 			// if no system, generate a new token
 			if (!system) {
 				nextSystemToken ||= generateToken()
@@ -89,12 +99,17 @@ export const SystemDialog = ({ setOpen, system }: { setOpen: (open: boolean) => 
 			tokenMap.set(system.id, token)
 			setToken(token)
 		})()
-	}, [system?.id, nextSystemToken])
+	}, [system?.id, nextSystemToken, adapter?.token])
 
 	async function handleSubmit(e: SubmitEvent) {
 		e.preventDefault()
 		const formData = new FormData(e.target as HTMLFormElement)
 		const data = Object.fromEntries(formData) as Record<string, any>
+		if (adapter) {
+			try { await adapter.onSubmit(data); setOpen(false) }
+			catch (error) { toast({ title: t`Failed to save settings`, description: (error as Error).message, variant: "destructive" }) }
+			return
+		}
 		data.users = pb.authStore.record!.id
 		try {
 			setOpen(false)
@@ -147,8 +162,8 @@ export const SystemDialog = ({ setOpen, system }: { setOpen: (open: boolean) => 
 							<code className="bg-muted px-1 rounded-sm leading-3">docker-compose.yml</code> content for the agent
 							below, or register agents automatically with a{" "}
 							<Link
-								onClick={() => setOpen(false)}
-								href={getPagePath($router, "settings", { name: "tokens" })}
+									onClick={adapter?.onTokensClick ? (e) => { e.preventDefault(); setOpen(false); adapter.onTokensClick?.() } : () => setOpen(false)}
+									href={adapter ? "#tokens" : getPagePath($router, "settings", { name: "tokens" })}
 								className="link"
 							>
 								universal token
@@ -163,8 +178,8 @@ export const SystemDialog = ({ setOpen, system }: { setOpen: (open: boolean) => 
 						<Trans>
 							Copy the installation command for the agent below, or register agents automatically with a{" "}
 							<Link
-								onClick={() => setOpen(false)}
-								href={getPagePath($router, "settings", { name: "tokens" })}
+									onClick={adapter?.onTokensClick ? (e) => { e.preventDefault(); setOpen(false); adapter.onTokensClick?.() } : () => setOpen(false)}
+									href={adapter ? "#tokens" : getPagePath($router, "settings", { name: "tokens" })}
 								className="link"
 							>
 								universal token

@@ -4,9 +4,10 @@ import { I18nProvider } from "@lingui/react"
 import { useStore } from "@nanostores/react"
 import { DirectionProvider } from "@radix-ui/react-direction"
 // import { Suspense, lazy, useEffect, StrictMode } from "react"
-import { lazy, memo, Suspense, useEffect } from "react"
+import { lazy, memo, Suspense, useEffect, useState } from "react"
 import ReactDOM from "react-dom/client"
 import Navbar from "@/components/navbar.tsx"
+import { Logo } from "@/components/logo"
 import { $router } from "@/components/router.tsx"
 import Settings from "@/components/routes/settings/layout.tsx"
 import { ThemeProvider } from "@/components/theme-provider.tsx"
@@ -27,7 +28,6 @@ import * as systemsManager from "@/lib/systemsManager.ts"
 import type { BeszelInfo, UpdateInfo } from "./types"
 
 const LoginPage = lazy(() => import("@/components/login/login.tsx"))
-const Home = lazy(() => import("@/components/routes/home.tsx"))
 const Containers = lazy(() => import("@/components/routes/containers.tsx"))
 const Smart = lazy(() => import("@/components/routes/smart.tsx"))
 const Monitors = lazy(() => import("@/components/routes/monitors.tsx"))
@@ -74,7 +74,7 @@ const App = memo(() => {
 	if (!page) {
 		return <h1 className="text-3xl text-center my-14">404</h1>
 	} else if (page.route === "home") {
-		return <Home />
+		return <SystemDetail id="m9gh5qbz6fc3bw3" />
 	} else if (page.route === "system") {
 		return <SystemDetail id={page.params.id} />
 	} else if (page.route === "containers") {
@@ -90,6 +90,7 @@ const App = memo(() => {
 
 const Layout = () => {
 	const authenticated = useStore($authenticated)
+	const [authPending, setAuthPending] = useState(() => !pb.authStore.isValid && !sessionStorage.getItem("lo"))
 	const copyContent = useStore($copyContent)
 	const direction = useStore($direction)
 	const { layoutWidth } = useStore($userSettings, { keys: ["layoutWidth"] })
@@ -98,9 +99,33 @@ const Layout = () => {
 		document.documentElement.dir = direction
 	}, [direction])
 
+	useEffect(() => {
+		if (!authPending) return
+		let active = true
+		pb.collection("users")
+			.authRefresh({ requestKey: "initial-auth" })
+			.then(() => {
+				if (active) $authenticated.set(pb.authStore.isValid)
+			})
+			.catch(() => {
+				// A normal sign-in form remains available when automatic authentication fails.
+			})
+			.finally(() => {
+				if (active) setAuthPending(false)
+			})
+		return () => { active = false }
+	}, [])
+
 	return (
 		<DirectionProvider dir={direction}>
-			{!authenticated ? (
+			{authPending ? (
+				<div role="status" className="min-h-svh grid place-items-center">
+					<div className="grid gap-4 text-center">
+						<Logo className="h-7 fill-foreground mx-auto" />
+						<span className="text-sm text-muted-foreground">加载看板…</span>
+					</div>
+				</div>
+			) : !authenticated ? (
 				<Suspense>
 					<LoginPage />
 				</Suspense>

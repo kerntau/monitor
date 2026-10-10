@@ -45,7 +45,9 @@ func NewHub(app core.App) *Hub {
 	hub.um = users.NewUserManager(hub)
 	hub.rm = records.NewRecordManager(hub)
 	hub.sm = systems.NewSystemManager(hub)
-	hub.hb = heartbeat.New(app, utils.GetEnv)
+	if !chenvEnabled() {
+		hub.hb = heartbeat.New(app, utils.GetEnv)
+	}
 	if hub.hb != nil {
 		hub.hbStop = make(chan struct{})
 	}
@@ -80,10 +82,16 @@ func (h *Hub) StartHub() error {
 			return err
 		}
 		// register middlewares
-		h.registerMiddlewares(e)
+		if chenvEnabled() {
+			h.registerChenv(e)
+		} else {
+			h.registerMiddlewares(e)
+		}
 		// register api routes
-		if err := h.registerApiRoutes(e); err != nil {
-			return err
+		if !chenvEnabled() {
+			if err := h.registerApiRoutes(e); err != nil {
+				return err
+			}
 		}
 		// register cron jobs
 		if err := h.registerCronJobs(e); err != nil {
@@ -136,7 +144,13 @@ func (h *Hub) initialize(app core.App) error {
 		return err
 	}
 	// set auth settings
-	return setCollectionAuthSettings(app)
+	if err := setCollectionAuthSettings(app); err != nil {
+		return err
+	}
+	if chenvEnabled() {
+		return h.chenvInitialize(app)
+	}
+	return nil
 }
 
 // registerCronJobs sets up scheduled tasks

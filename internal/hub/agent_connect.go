@@ -76,6 +76,12 @@ func (acr *agentConnectRequest) agentConnect() (err error) {
 		}
 	}
 
+	if !acr.isUniversalToken && chenvEnabled() {
+		if rec, err := acr.hub.FindFirstRecordByFilter("chenv_universal_tokens", "token = {:token}", dbx.Params{"token": acr.token}); err == nil {
+			acr.userId = rec.GetString("user")
+			acr.isUniversalToken = acr.userId != ""
+		}
+	}
 	// Find matching fingerprint records for this token
 	fpRecords := getFingerprintRecordsByToken(acr.token, acr.hub)
 	if len(fpRecords) == 0 && !acr.isUniversalToken {
@@ -285,7 +291,11 @@ func (acr *agentConnectRequest) createSystem(agentFingerprint common.Fingerprint
 	systemRecord.Set("name", agentFingerprint.Name)
 	systemRecord.Set("host", remoteAddr)
 	systemRecord.Set("port", agentFingerprint.Port)
-	systemRecord.Set("users", []string{acr.userId})
+	if chenvEnabled() {
+		systemRecord.Set("users", []string{})
+	} else {
+		systemRecord.Set("users", []string{acr.userId})
+	}
 
 	return systemRecord.Id, acr.hub.Save(systemRecord)
 }

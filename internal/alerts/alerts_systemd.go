@@ -24,6 +24,9 @@ const maxListedServices = 10
 // 10 minutes, so a shorter delay could never observe new data before expiring, and
 // that poll interval already hides services that fail and restart quickly.
 func (am *AlertManager) HandleSystemdAlerts(systemRecord *core.Record) error {
+	if am.disabled {
+		return nil
+	}
 	alerts := am.alertsCache.GetAlertsByName(systemRecord.Id, alertNameSystemdFailed)
 	if len(alerts) == 0 {
 		return nil

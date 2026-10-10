@@ -11,7 +11,7 @@ import {
 	ServerIcon,
 	Trash2Icon,
 } from "lucide-react"
-import { memo, useEffect, useMemo, useState } from "react"
+import { createContext, useContext, memo, useEffect, useMemo, useState } from "react"
 import {
 	copyDockerCompose,
 	copyDockerRun,
@@ -40,6 +40,9 @@ import { $publicKey } from "@/lib/stores"
 import { cn, copyToClipboard, generateToken, getHubURL, tokenMap } from "@/lib/utils"
 import type { FingerprintRecord } from "@/types"
 
+import type PocketBase from "pocketbase"
+const TokenContext=createContext({client:pb,universalEndpoint:"/api/beszel/universal-token"})
+
 const pbFingerprintOptions = {
 	expand: "system",
 	fields: "id,fingerprint,token,system,expand.system.name",
@@ -50,14 +53,15 @@ function sortFingerprints(fingerprints: FingerprintRecord[]) {
 }
 
 const SettingsFingerprintsPage = memo(() => {
-	if (isReadOnlyUser()) {
+ const {client}=useContext(TokenContext)
+	if (!BESZEL.CHENV_MODE && isReadOnlyUser()) {
 		redirectPage($router, "settings", { name: "general" })
 	}
 	const [fingerprints, setFingerprints] = useState<FingerprintRecord[]>([])
 
 	// Get fingerprint records on mount
 	useEffect(() => {
-		pb.collection("fingerprints")
+		client.collection("fingerprints")
 			.getFullList<FingerprintRecord>(pbFingerprintOptions)
 			.then((prints) => {
 				setFingerprints(sortFingerprints(prints))
@@ -69,7 +73,7 @@ const SettingsFingerprintsPage = memo(() => {
 		let unsubscribe: (() => void) | undefined
 		;(async () => {
 			// subscribe to fingerprint updates
-			unsubscribe = await pb.collection("fingerprints").subscribe(
+			unsubscribe = await client.collection("fingerprints").subscribe(
 				"*",
 				(res) => {
 					setFingerprints((currentFingerprints) => {
@@ -135,6 +139,7 @@ const SectionIntro = memo(() => {
 })
 
 const SectionUniversalToken = memo(() => {
+ const {client,universalEndpoint}=useContext(TokenContext)
 	const [token, setToken] = useState("")
 	const [isLoading, setIsLoading] = useState(true)
 	const [checked, setChecked] = useState(false)
@@ -143,7 +148,7 @@ const SectionUniversalToken = memo(() => {
 
 	async function updateToken(enable: number = -1, permanent: number = -1) {
 		// enable: 0 for disable, 1 for enable, -1 (unset) for get current state
-		const data = await pb.send(`/api/beszel/universal-token`, {
+		const data = await client.send(universalEndpoint, {
 			query: {
 				token,
 				enable,
@@ -315,7 +320,7 @@ const ActionsButtonUniversalToken = memo(({ token, checked }: { token: string; c
 
 const SectionTable = memo(({ fingerprints = [] }: { fingerprints: FingerprintRecord[] }) => {
 	const { t } = useLingui()
-	const isReadOnly = isReadOnlyUser()
+	const isReadOnly = !BESZEL.CHENV_MODE && isReadOnlyUser()
 
 	const headerCols = useMemo(
 		() => [
@@ -380,9 +385,9 @@ const SectionTable = memo(({ fingerprints = [] }: { fingerprints: FingerprintRec
 	)
 })
 
-async function updateFingerprint(fingerprint: FingerprintRecord, rotateToken = false) {
+async function updateFingerprint(client:PocketBase, fingerprint: FingerprintRecord, rotateToken = false) {
 	try {
-		await pb.collection("fingerprints").update(fingerprint.id, {
+		await client.collection("fingerprints").update(fingerprint.id, {
 			fingerprint: "",
 			token: rotateToken ? generateToken() : fingerprint.token,
 		})
@@ -395,6 +400,7 @@ async function updateFingerprint(fingerprint: FingerprintRecord, rotateToken = f
 }
 
 const ActionsButtonTable = memo(({ fingerprint }: { fingerprint: FingerprintRecord }) => {
+	const {client}=useContext(TokenContext)
 	const envVar = `HUB_URL=${getHubURL()}\nTOKEN=${fingerprint.token}`
 	const copyEnv = () => copyToClipboard(envVar)
 	const copyYaml = () => copyToClipboard(envVar.replaceAll("=", ": "))
@@ -419,12 +425,12 @@ const ActionsButtonTable = memo(({ fingerprint }: { fingerprint: FingerprintReco
 					<Trans context="Environment variables">Copy env</Trans>
 				</DropdownMenuItem>
 				<DropdownMenuSeparator />
-				<DropdownMenuItem onSelect={() => updateFingerprint(fingerprint, true)}>
+				<DropdownMenuItem onSelect={() => updateFingerprint(client, fingerprint, true)}>
 					<RotateCwIcon className="me-2.5 size-4" />
 					<Trans>Rotate token</Trans>
 				</DropdownMenuItem>
 				{fingerprint.fingerprint && (
-					<DropdownMenuItem onSelect={() => updateFingerprint(fingerprint)}>
+					<DropdownMenuItem onSelect={() => updateFingerprint(client, fingerprint)}>
 						<Trash2Icon className="me-2.5 size-4" />
 						<Trans>Delete fingerprint</Trans>
 					</DropdownMenuItem>
@@ -434,4 +440,4 @@ const ActionsButtonTable = memo(({ fingerprint }: { fingerprint: FingerprintReco
 	)
 })
 
-export default SettingsFingerprintsPage
+export default function TokensPage({client=pb,universalEndpoint="/api/beszel/universal-token"}:{client?:PocketBase;universalEndpoint?:string}) {return <TokenContext.Provider value={{client,universalEndpoint}}><SettingsFingerprintsPage/></TokenContext.Provider>}

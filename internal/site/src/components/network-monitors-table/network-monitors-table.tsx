@@ -75,6 +75,8 @@ import { Separator } from "../ui/separator"
 import { $router, Link } from "../router"
 import { getPagePath } from "@nanostores/router"
 
+import { useNetworkMonitorAdapter } from "@/lib/network-monitor-context"
+
 export default function NetworkMonitorsTableNew({
 	systemId,
 	monitors,
@@ -104,7 +106,8 @@ export default function NetworkMonitorsTableNew({
 	const [editingMonitor, setEditingMonitor] = useState<NetworkMonitorRecord>()
 
 	const { toast } = useToast()
-	const canManageMonitors = !isReadOnlyUser()
+	const adapter=useNetworkMonitorAdapter()
+ const canManageMonitors = adapter ? adapter.canManage : !isReadOnlyUser()
 
 	// Apply settings from server once they load (handles incognito / new devices)
 	const appliedSettings = useRef(new Set<string>())
@@ -215,9 +218,9 @@ export default function NetworkMonitorsTableNew({
 
 		try {
 			if (ids.length === 1) {
-				await pb.collection("network_monitors").delete(ids[0])
+				await (adapter ? adapter.remove(ids[0]) : pb.collection("network_monitors").delete(ids[0]))
 			} else {
-				await runMonitorBatch(ids, (batch, id) => batch.collection("network_monitors").delete(id))
+				if(adapter){for(const id of ids)await adapter.remove(id)}else await runMonitorBatch(ids, (batch, id) => batch.collection("network_monitors").delete(id))
 			}
 			setPendingDelete([])
 			setRowSelection({})
@@ -243,10 +246,10 @@ export default function NetworkMonitorsTableNew({
 
 			try {
 				if (pendingUpdates.length === 1) {
-					await pb.collection("network_monitors").update(pendingUpdates[0].id, { enabled })
+					await (adapter ? adapter.update(pendingUpdates[0].id,{enabled}) : pb.collection("network_monitors").update(pendingUpdates[0].id, { enabled }))
 					return
 				}
-				await runMonitorBatch(
+				if(adapter){for(const m of pendingUpdates)await adapter.update(m.id,{enabled})}else await runMonitorBatch(
 					pendingUpdates.map((monitor) => monitor.id),
 					(batch, id) => batch.collection("network_monitors").update(id, { enabled })
 				)
@@ -261,7 +264,7 @@ export default function NetworkMonitorsTableNew({
 				})
 			}
 		},
-		[runMonitorBatch, toast]
+		[runMonitorBatch, toast, adapter]
 	)
 
 	const columns = useMemo(() => {
@@ -271,7 +274,7 @@ export default function NetworkMonitorsTableNew({
 			onSetEnabled: handleSetEnabled,
 		})
 		columns = systemId ? columns.filter((col) => col.id !== "system") : columns
-		columns = canManageMonitors ? columns : columns.filter((col) => col.id !== "actions")
+		columns = canManageMonitors ? columns : columns.filter((col) => col.id !== "actions" && col.id !== "select" && col.id !== "target")
 		return columns
 	}, [canManageMonitors, handleDeleteRequest, handleSetEnabled, systemId, longestTarget, $longestSystemName])
 

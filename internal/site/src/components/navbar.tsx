@@ -32,6 +32,7 @@ import {
 import { isAdmin, isReadOnlyUser, logOut, pb } from "@/lib/api"
 import { cn, runOnce } from "@/lib/utils"
 import { AddSystemDialog } from "./add-system"
+import { NavbarFrame } from "./navbar-frame"
 import { Logo } from "./logo"
 import { ModeToggle } from "./mode-toggle"
 import { $router, basePath, Link, navigate, prependBasePath } from "./router"
@@ -48,7 +49,7 @@ export default function Navbar() {
 	const AdminLinks = AdminDropdownGroup()
 
 	return (
-		<div className="flex items-center h-14 md:h-16 bg-card px-4 pe-3 sm:px-6 border border-border/60 bt-0 rounded-md my-4">
+		<NavbarFrame>
 			<Suspense>
 				<CommandPalette open={commandPaletteOpen} setOpen={setCommandPaletteOpen} />
 			</Suspense>
@@ -244,7 +245,7 @@ export default function Navbar() {
 					</Button>
 				)}
 			</div>
-		</div>
+		</NavbarFrame>
 	)
 }
 

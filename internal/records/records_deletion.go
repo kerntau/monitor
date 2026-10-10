@@ -2,6 +2,7 @@ package records
 
 import (
 	"fmt"
+	"github.com/henrygd/beszel/internal/hub/utils"
 	"log/slog"
 	"time"
 
@@ -24,6 +25,10 @@ func (rm *RecordManager) DeleteOldRecords() {
 		err = deleteOldSystemdServiceRecords(txApp)
 		if err != nil {
 			slog.Error("Error deleting old systemd service records", "err", err)
+		}
+		mode, _ := utils.GetEnv("CHENV_MODE")
+		if mode != "false" {
+			return nil
 		}
 		err = deleteOldAlertsHistory(txApp, 200, 250)
 		if err != nil {

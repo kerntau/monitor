@@ -31,6 +31,9 @@ import { getMonitorTarget } from "@/lib/network-monitor-utils"
 import type { NetworkMonitorRecord } from "@/types"
 import * as v from "valibot"
 
+import { useNetworkMonitorAdapter } from "@/lib/network-monitor-context"
+import { Checkbox } from "@/components/ui/checkbox"
+
 type MonitorProtocol = "icmp" | "tcp" | "http" | "dns"
 
 type MonitorValues = {
@@ -467,7 +470,8 @@ function MultiSelect<T extends MultiSelectOption>({
 }
 
 export function AddMonitorDialog({ systemId, monitors }: { systemId?: string; monitors: NetworkMonitorRecord[] }) {
-	const [open, setOpen] = useState(false)
+	const adapter=useNetworkMonitorAdapter()
+ const [open, setOpen] = useState(false)
 	const [bulkOpen, setBulkOpen] = useState(false)
 	const [bulkInput, setBulkInput] = useState("")
 	const [bulkLoading, setBulkLoading] = useState(false)
@@ -534,15 +538,15 @@ export function AddMonitorDialog({ systemId, monitors }: { systemId?: string; mo
 				let batch = pb.createBatch()
 				let inBatch = 0
 				for (const payload of newPayloads) {
-					batch.collection("network_monitors").create(payload)
+					if(adapter) await adapter.create(payload);else batch.collection("network_monitors").create(payload)
 					inBatch++
-					if (inBatch > 20) {
+					if (!adapter && inBatch > 20) {
 						await batch.send()
 						batch = pb.createBatch()
 						inBatch = 0
 					}
 				}
-				if (inBatch) {
+				if (!adapter && inBatch) {
 					await batch.send()
 				}
 				totalCreated += newPayloads.length
@@ -715,7 +719,10 @@ function MonitorDialogContent({
 	monitor?: NetworkMonitorRecord
 	onOpenBulkAdd?: (selectedSystemIds: Set<string>) => void
 }) {
-	const [protocol, setProtocol] = useState<MonitorProtocol>(monitor?.protocol ?? "icmp")
+	const adapter=useNetworkMonitorAdapter()
+ const [displayName,setDisplayName]=useState(monitor?.name || "")
+ const [isPublic,setPublic]=useState(monitor?.public ?? false)
+ const [protocol, setProtocol] = useState<MonitorProtocol>(monitor?.protocol ?? "icmp")
 	const [target, setTarget] = useState(monitor?.target ?? "")
 	const [port, setPort] = useState(monitor?.protocol === "tcp" && monitor.port ? String(monitor.port) : "")
 	const [server, setServer] = useState(monitor?.protocol === "dns" ? (monitor.server ?? "") : "")
@@ -735,6 +742,7 @@ function MonitorDialogContent({
 			return
 		}
 
+		setDisplayName(monitor?.name || "");setPublic(monitor?.public ?? false)
 		setProtocol(monitor?.protocol ?? "icmp")
 		setTarget(monitor?.target ?? "")
 		setPort(monitor?.protocol === "tcp" && monitor.port ? String(monitor.port) : "")
@@ -765,10 +773,10 @@ function MonitorDialogContent({
 				monitor ? monitor.enabled : true
 			)
 			if (monitor) {
-				await pb.collection("network_monitors").update(monitor.id, payload)
+				await (adapter ? adapter.update(monitor.id,{...payload,name:displayName,public:isPublic}) : pb.collection("network_monitors").update(monitor.id, payload))
 			} else {
 				for (const system of targetSystems) {
-					await pb.collection("network_monitors").create({ ...payload, system })
+					await (adapter ? adapter.create({ ...payload,system,name:displayName,public:isPublic }) : pb.collection("network_monitors").create({ ...payload, system }))
 					remainingSystemIds.delete(system)
 				}
 			}
@@ -799,6 +807,7 @@ function MonitorDialogContent({
 				</DialogDescription>
 			</DialogHeader>
 			<form onSubmit={handleSubmit} className="grid gap-4 tabular-nums">
+ {adapter && <div className="grid gap-2"><Label htmlFor="monitor-display-name">公开显示名称</Label><Input id="monitor-display-name" value={displayName} onChange={e=>setDisplayName(e.target.value)} placeholder="留空使用默认名称"/><label className="flex items-center gap-2 text-sm"><Checkbox checked={isPublic} onCheckedChange={v=>setPublic(v===true)}/>公开探测结果</label></div>}
 				{!systemId && !isEditing && (
 					<div className="grid gap-2">
 						<Label htmlFor="monitor-systems">
@@ -834,10 +843,10 @@ function MonitorDialogContent({
 					</div>
 				)}
 				<div className="grid gap-2">
-					<Label>
+					<Label htmlFor="monitor-target">
 						<Trans>Target</Trans>
 					</Label>
-					<Input
+					<Input id="monitor-target"
 						value={target}
 						onChange={(e) => setTarget(e.target.value)}
 						placeholder={protocol === "http" ? "http://localhost:8090" : protocol === "dns" ? "example.com" : "1.1.1.1"}
@@ -898,10 +907,10 @@ function MonitorDialogContent({
 					</div>
 				)}
 				<div className="grid gap-2">
-					<Label>
+					<Label htmlFor="monitor-interval">
 						<Trans>Interval (seconds)</Trans>
 					</Label>
-					<Input
+					<Input id="monitor-interval"
 						type="number"
 						value={monitorInterval}
 						onChange={(e) => setMonitorInterval(e.target.value)}

@@ -261,10 +261,14 @@ func (info *UpdateInfo) getUpdate(e *core.RequestEvent) error {
 
 // GetUniversalToken handles the universal token API endpoint (create, read, delete)
 func (h *Hub) getUniversalToken(e *core.RequestEvent) error {
-	if e.Auth.IsSuperuser() {
+	if e.Auth.IsSuperuser() && (!chenvEnabled() || !strings.HasPrefix(e.Request.URL.Path, "/api/chenv/admin/")) {
 		return e.ForbiddenError("Superusers cannot use universal tokens", nil)
 	}
 
+	collection := "universal_tokens"
+	if e.Auth.IsSuperuser() {
+		collection = "chenv_universal_tokens"
+	}
 	tokenMap := universalTokenMap.GetMap()
 	userID := e.Auth.Id
 	query := e.Request.URL.Query()
@@ -274,7 +278,7 @@ func (h *Hub) getUniversalToken(e *core.RequestEvent) error {
 
 	// helper for deleting any existing permanent token record for this user
 	deletePermanent := func() error {
-		rec, err := h.FindFirstRecordByFilter("universal_tokens", "user = {:user}", dbx.Params{"user": userID})
+		rec, err := h.FindFirstRecordByFilter(collection, "user = {:user}", dbx.Params{"user": userID})
 		if err != nil {
 			return nil // no record
 		}
@@ -283,13 +287,13 @@ func (h *Hub) getUniversalToken(e *core.RequestEvent) error {
 
 	// helper for upserting a permanent token record for this user
 	upsertPermanent := func(token string) error {
-		rec, err := h.FindFirstRecordByFilter("universal_tokens", "user = {:user}", dbx.Params{"user": userID})
+		rec, err := h.FindFirstRecordByFilter(collection, "user = {:user}", dbx.Params{"user": userID})
 		if err == nil {
 			rec.Set("token", token)
 			return h.Save(rec)
 		}
 
-		col, err := h.FindCachedCollectionByNameOrId("universal_tokens")
+		col, err := h.FindCachedCollectionByNameOrId(collection)
 		if err != nil {
 			return err
 		}
@@ -329,7 +333,7 @@ func (h *Hub) getUniversalToken(e *core.RequestEvent) error {
 
 	// Read current state
 	// Prefer permanent token if it exists.
-	if rec, err := h.FindFirstRecordByFilter("universal_tokens", "user = {:user}", dbx.Params{"user": userID}); err == nil {
+	if rec, err := h.FindFirstRecordByFilter(collection, "user = {:user}", dbx.Params{"user": userID}); err == nil {
 		dbToken := rec.GetString("token")
 		// If no token was provided, or the caller is asking about their permanent token, return it.
 		if token == "" || token == dbToken {

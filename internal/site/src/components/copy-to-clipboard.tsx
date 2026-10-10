@@ -6,7 +6,7 @@ import { Textarea } from "./ui/textarea"
 
 export default function CopyToClipboard({ content }: { content: string }) {
 	return (
-		<Dialog defaultOpen={true}>
+		<Dialog defaultOpen={true} onOpenChange={open=>!open && $copyContent.set("")}>
 			<DialogContent className="w-[90%] rounded-lg md:pt-4" style={{ maxWidth: 530 }}>
 				<DialogHeader>
 					<DialogTitle>

@@ -53,6 +53,9 @@ type containerAlertTarget struct {
 // fetchLogs is used when an alert actually fires so the notification can include
 // a log excerpt (prioritizing lines containing "error"/"fatal") for context.
 func (am *AlertManager) HandleContainerAlerts(systemRecord *core.Record, data *system.CombinedData, fetchLogs FetchContainerLogsFunc) error {
+	if am.disabled {
+		return nil
+	}
 	alerts := am.alertsCache.GetAlertsByName(systemRecord.Id, containerAlertName)
 	if len(alerts) == 0 {
 		return nil

@@ -40,6 +40,7 @@ export const navigate = (urlString: string) => {
 }
 
 export function Link(props: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
+	if (globalThis.BESZEL?.CHENV_MODE) return <a {...props} />
 	return (
 		<a
 			{...props}

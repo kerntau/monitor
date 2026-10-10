@@ -8,6 +8,7 @@ declare global {
 		HUB_VERSION: string
 		HUB_URL: string
 		OAUTH_DISABLE_POPUP: boolean
+		CHENV_MODE?: boolean
 	}
 }
 
@@ -688,6 +689,9 @@ export interface UpdateInfo {
 }
 
 export interface NetworkMonitorRecord {
+ name?: string
+ public?: boolean
+ comparisonKey?: string
 	id: string
 	system: string
 	target: string

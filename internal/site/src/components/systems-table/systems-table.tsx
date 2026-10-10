@@ -56,13 +56,15 @@ import { SystemsTableColumns, ActionsButton, IndicatorDot } from "./systems-tabl
 type ViewMode = "table" | "grid"
 type StatusFilter = "all" | SystemRecord["status"]
 
-const preloadSystemDetail = runOnce(() => import("@/components/routes/system.tsx"))
+const preloadSystemDetail = runOnce(() => { if(!BESZEL.CHENV_MODE) return import("@/components/routes/system.tsx") })
 
-export default function SystemsTable() {
-	const data = useStore($systems)
-	const downSystems = $downSystems.get()
-	const upSystems = $upSystems.get()
-	const pausedSystems = $pausedSystems.get()
+export default function SystemsTable({ records, publicOnly = false, management = false }: { records?: SystemRecord[]; publicOnly?: boolean; management?: boolean } = {}) {
+	const storedData = useStore($systems)
+	const data = records ?? storedData
+	const byStatus = (status: string) => Object.fromEntries(data.filter(s => s.status === status).map(s => [s.id, s]))
+	const downSystems = records ? byStatus("down") : $downSystems.get()
+	const upSystems = records ? byStatus("up") : $upSystems.get()
+	const pausedSystems = records ? byStatus("paused") : $pausedSystems.get()
 	const { i18n, t } = useLingui()
 	const [filter, setFilter] = useState<string>("")
 	const [statusFilter, setStatusFilter] = useState<StatusFilter>(
@@ -74,7 +76,7 @@ export default function SystemsTable() {
 	const [sorting, setSorting] = useState<SortingState>(
 		() =>
 			$userSettings.get().sortMode ??
-			JSON.parse(sessionStorage.getItem("besz-sortMode") || "null") ?? [{ id: "system", desc: false }]
+			JSON.parse(sessionStorage.getItem("besz-sortMode") || "null") ?? (publicOnly ? [] : [{ id: "system", desc: false }])
 	)
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
 	const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
@@ -173,7 +175,7 @@ export default function SystemsTable() {
 		}
 	}, [filter])
 
-	const columnDefs = useMemo(() => SystemsTableColumns(viewMode), [viewMode])
+	const columnDefs = useMemo(() => SystemsTableColumns(viewMode).filter(c => (!publicOnly && !management) || ["system", "cpu", "memory", "disk", "loadAverage", "net", "uptime", "agent", ...(management ? ["actions"] : [])].includes(c.id || "")), [viewMode, publicOnly, management])
 
 	const table = useReactTable({
 		data: filteredData,
@@ -542,8 +544,7 @@ const SystemCard = memo(
 							</h3>
 							{table.getColumn("actions")?.getIsVisible() && (
 								<div className="flex gap-1 shrink-0 relative z-10">
-									<AlertButton system={system} />
-									<ActionsButton system={system} />
+									{!globalThis.BESZEL?.CHENV_MODE && <AlertButton system={system}/>}<ActionsButton system={system}/>
 								</div>
 							)}
 						</div>

@@ -55,6 +55,11 @@ export function logOut() {
 
 /** Save a partial update to user settings in database immediately */
 export async function saveUserSettings(newSettings: Partial<UserSettings>) {
+	if (globalThis.BESZEL?.CHENV_MODE) {
+		$userSettings.set({ ...$userSettings.get(), ...newSettings })
+		localStorage.setItem("chenv-chart-settings", JSON.stringify($userSettings.get()))
+		return
+	}
 	// get fresh copy of settings so concurrent changes aren't overwritten
 	const req = await pb.collection("user_settings").getFirstListItem("", { fields: "id,settings" })
 	const updatedSettings = await pb.collection("user_settings").update(req.id, {

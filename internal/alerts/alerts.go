@@ -3,6 +3,7 @@ package alerts
 
 import (
 	"fmt"
+	"github.com/henrygd/beszel/internal/hub/utils"
 	"net/mail"
 	"net/url"
 	"sync"
@@ -20,6 +21,7 @@ type hubLike interface {
 }
 
 type AlertManager struct {
+	disabled        bool
 	hub             hubLike
 	stopOnce        sync.Once
 	pendingAlerts   sync.Map
@@ -112,7 +114,11 @@ func NewAlertManager(app hubLike) *AlertManager {
 		alertsCache:     NewAlertsCache(app),
 		networkMonitors: newNetworkMonitorCache(app),
 	}
-	am.bindEvents()
+	mode, _ := utils.GetEnv("CHENV_MODE")
+	am.disabled = mode != "false"
+	if !am.disabled {
+		am.bindEvents()
+	}
 	return am
 }
 
@@ -212,6 +218,9 @@ func (am *AlertManager) IsNotificationSilenced(userID, systemID string) bool {
 
 // SendAlert sends an alert to the user
 func (am *AlertManager) SendAlert(data AlertMessageData) error {
+	if am.disabled {
+		return nil
+	}
 	// Stored subscriptions and queued notifications may outlive system access.
 	if data.SystemID != "" && !userHasSystem(am.hub, data.UserID, data.SystemID) {
 		return nil

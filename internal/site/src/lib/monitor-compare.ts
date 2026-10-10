@@ -5,10 +5,12 @@ import type { NetworkMonitorRecord } from "@/types"
 /** Most lines a comparison charts, to keep it readable and the stats request's filter short. */
 export const MAX_COMPARE_MONITORS = 24
 
-type MonitorTarget = Pick<NetworkMonitorRecord, "target" | "protocol" | "port">
+type MonitorTarget = Pick<NetworkMonitorRecord, "target" | "protocol" | "port" | "name">
 
 export function getMonitorTarget(monitor: MonitorTarget) {
-	if (monitor.protocol !== "tcp") return monitor.target
+	if (monitor.name) return monitor.name
+ if (!monitor.target) return monitor.protocol.toUpperCase()
+ if (monitor.protocol !== "tcp") return monitor.target
 	const host = monitor.target.includes(":") && !monitor.target.startsWith("[") ? `[${monitor.target}]` : monitor.target
 	return `${host}:${monitor.port}`
 }
@@ -19,8 +21,9 @@ export function getMonitorIdentityKey({
 	target,
 	port,
 	server,
-}: Pick<NetworkMonitorRecord, "protocol" | "target" | "port" | "server">) {
-	return JSON.stringify([protocol, target, port, server])
+ comparisonKey,
+}: Pick<NetworkMonitorRecord, "protocol" | "target" | "port" | "server" | "comparisonKey">) {
+	return comparisonKey || JSON.stringify([protocol, target, port, server])
 }
 
 interface MonitorCompareInput {

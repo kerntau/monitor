@@ -18,6 +18,8 @@ import { pb, getPbTimestamp } from "@/lib/api"
 import { toast } from "@/components/ui/use-toast"
 import type { RecordListOptions, RecordSubscription } from "pocketbase"
 
+import { useNetworkMonitorAdapter } from "./network-monitor-context"
+
 const cache = new Map<string, NetworkMonitorStatsRecord[]>()
 
 function getCacheValue(cacheKey: string, chartTime: ChartTimes | "rt") {
@@ -178,6 +180,7 @@ interface UseNetworkMonitorStatsProps {
  */
 export function useNetworkMonitorStats(props: UseNetworkMonitorStatsProps) {
 	const { systemId, interval, chartTime, enabled = true } = props
+ const adapter=useNetworkMonitorAdapter()
 	// Stable key so effects don't re-run when callers pass a new array with the same IDs.
 	const cacheKey = [...props.monitorIds].sort().join(",")
 	const [monitorStats, setMonitorStats] = useState<NetworkMonitorStatsRecord[]>([])
@@ -189,9 +192,16 @@ export function useNetworkMonitorStats(props: UseNetworkMonitorStatsProps) {
 		setMonitorStats(getCacheValue(cacheKey, chartTime === "1m" ? "rt" : chartTime))
 	}, [cacheKey, chartTime])
 
+ useEffect(()=>{
+  if(!adapter || !enabled || !cacheKey)return
+  let active=true;let timer:ReturnType<typeof setTimeout>
+  setMonitorStats([])
+  const load=async()=>{try{const rows=await adapter.stats(cacheKey.split(','),chartTime);if(active)setMonitorStats(mergeMonitorStats(rows,getBucketMs(cacheKey.split(','),chartTime)))}catch(error){if(active)toast({title:'加载探测历史失败',description:(error as Error).message,variant:'destructive'})}finally{if(active)timer=setTimeout(load,10000)}}
+  void load();return()=>{active=false;clearTimeout(timer)}
+ },[adapter,cacheKey,chartTime,enabled])
 	// Fetch only the selected monitors' missing history.
 	useEffect(() => {
-		if (!enabled || chartTime === "1m") {
+		if (adapter || !enabled || chartTime === "1m") {
 			return
 		}
 
@@ -222,7 +232,7 @@ export function useNetworkMonitorStats(props: UseNetworkMonitorStatsProps) {
 
 	// subscribe to new per-monitor stats records; batch them into merged chart records
 	useEffect(() => {
-		if (!enabled || chartTime === "1m") {
+		if (adapter || !enabled || chartTime === "1m") {
 			return
 		}
 		let cancelled = false
@@ -284,7 +294,7 @@ export function useNetworkMonitorStats(props: UseNetworkMonitorStatsProps) {
 
 	// subscribe to realtime metrics if chart time is 1m
 	useEffect(() => {
-		if (!enabled || chartTime !== "1m") {
+		if (adapter || !enabled || chartTime !== "1m") {
 			return
 		}
 		let cancelled = false
@@ -331,19 +341,20 @@ const COMPARE_MONITOR_FIELDS = "id,system,target,protocol,port,server,interval,r
  * Fetched per open so it also works in single-system tables, which only hold one system's monitors.
  */
 export function useCompareMonitors(system: string, protocol: string, enabled = true) {
+ const adapter=useNetworkMonitorAdapter()
 	const key = `${system}:${protocol}`
 	const [result, setResult] = useState<{ key: string; monitors: NetworkMonitorRecord[] }>({ key, monitors: [] })
 
 	useEffect(() => {
 		if (!enabled) return
 		let cancelled = false
-		pb.collection<NetworkMonitorRecord>("network_monitors")
+		;(adapter ? adapter.list() : pb.collection<NetworkMonitorRecord>("network_monitors")
 			.getFullList({
 				fields: COMPARE_MONITOR_FIELDS,
 				filter: pb.filter("system!={:system} && protocol={:protocol}", { system, protocol }),
-			})
+			}))
 			.then((monitors) => {
-				if (!cancelled) setResult({ key: `${system}:${protocol}`, monitors })
+				if (!cancelled) setResult({ key: `${system}:${protocol}`, monitors:monitors.filter(m=>m.system!==system && m.protocol===protocol) })
 			})
 			.catch((error) => {
 				if (!cancelled) console.error("Failed to fetch compare monitors:", error)
@@ -351,7 +362,7 @@ export function useCompareMonitors(system: string, protocol: string, enabled = t
 		return () => {
 			cancelled = true
 		}
-	}, [system, protocol, enabled])
+	}, [system, protocol, enabled, adapter])
 
 	// Keep showing the last result while reopening refreshes it, but never another monitor's.
 	return result.key === key ? result.monitors : []

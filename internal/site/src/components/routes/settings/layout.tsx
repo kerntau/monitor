@@ -12,12 +12,11 @@ import {
 } from "lucide-react"
 import { lazy, useEffect } from "react"
 import { $router } from "@/components/router.tsx"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card.tsx"
+import { SettingsFrame } from "./layout-frame"
 import { toast } from "@/components/ui/use-toast.ts"
 import { saveUserSettings } from "@/lib/api"
 import { $userSettings } from "@/lib/stores.ts"
 import type { UserSettings } from "@/types"
-import { Separator } from "../../ui/separator"
 import { SidebarNav } from "./sidebar-nav.tsx"
 
 const generalSettingsImport = () => import("./general.tsx")
@@ -99,7 +98,7 @@ export default function SettingsLayout() {
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: no dependencies
 	useEffect(() => {
-		document.title = `${t`Settings`} / Beszel`
+		document.title = `${t`Settings`} / chenv`
 		// @ts-expect-error redirect to account page if no page is specified
 		if (!page?.params?.name) {
 			redirectPage($router, "settings", { name: "general" })
@@ -107,29 +106,10 @@ export default function SettingsLayout() {
 	}, [])
 
 	return (
-		<Card className="pt-5 px-4 pb-8 min-h-96 mb-14 sm:pt-6 sm:px-7">
-			<CardHeader className="p-0">
-				<CardTitle className="mb-1">
-					<Trans>Settings</Trans>
-				</CardTitle>
-				<CardDescription>
-					<Trans>Manage display and notification preferences.</Trans>
-				</CardDescription>
-			</CardHeader>
-			<CardContent className="p-0">
-				<Separator className="hidden md:block my-5" />
-				<div className="flex flex-col gap-3.5 md:flex-row md:gap-5 lg:gap-12">
-					<aside className="md:max-w-52 min-w-40">
-						<SidebarNav items={sidebarNavItems} />
-					</aside>
-					<div className="flex-1 min-w-0">
-						{/* @ts-ignore */}
-						<SettingsContent name={page?.params?.name ?? "general"} />
-					</div>
-				</div>
-			</CardContent>
-		</Card>
-	)
+        <SettingsFrame title={<Trans>Settings</Trans>} description={<Trans>Manage display and notification preferences.</Trans>} sidebar={<SidebarNav items={sidebarNavItems}/> }>
+            <SettingsContent name={page?.route === "settings" ? page.params.name ?? "general" : "general"}/>
+        </SettingsFrame>
+    )
 }
 
 function SettingsContent({ name }: { name: string }) {

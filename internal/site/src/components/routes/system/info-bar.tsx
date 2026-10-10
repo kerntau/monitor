@@ -38,6 +38,7 @@ export default function InfoBar({
 	displayMode,
 	setDisplayMode,
 	details,
+	allowRealtime = true,
 }: {
 	system: SystemRecord
 	chartData: ChartData
@@ -46,6 +47,7 @@ export default function InfoBar({
 	displayMode: "default" | "tabs"
 	setDisplayMode: (mode: "default" | "tabs") => void
 	details: SystemDetailsRecord | null
+	allowRealtime?: boolean
 }) {
 	const { t } = useLingui()
 
@@ -201,7 +203,7 @@ export default function InfoBar({
 					</div>
 				</div>
 				<div className="xl:ms-auto flex items-center gap-2 max-sm:-mb-1">
-					<ChartTimeSelect className="w-full xl:w-40" agentVersion={chartData.agentVersion} />
+					<ChartTimeSelect className="w-full xl:w-40" agentVersion={chartData.agentVersion} allowRealtime={allowRealtime} />
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<Button

@@ -1,74 +1,69 @@
-# Beszel
+# monitor / chenv
 
-Beszel is a lightweight server monitoring platform that includes Docker statistics, historical data, and alert functions.
+基于 Beszel v0.21.0 的公开监控看板二开，保留 MIT 许可证及原版权声明。
+源码目录：`T:\monitor`，分支：`chenv-simplified`。
 
-It has a friendly web interface, simple configuration, and is ready to use out of the box. It supports automatic backup, multi-user, OAuth authentication, and API access.
+## 界面与基础功能
 
-[![agent Docker Image Size](https://img.shields.io/docker/image-size/henrygd/beszel-agent/latest?logo=docker&label=agent%20image%20size)](https://hub.docker.com/r/henrygd/beszel-agent)
-[![hub Docker Image Size](https://img.shields.io/docker/image-size/henrygd/beszel/latest?logo=docker&label=hub%20image%20size)](https://hub.docker.com/r/henrygd/beszel)
-[![MIT license](https://img.shields.io/github/license/henrygd/beszel?color=%239944ee)](https://github.com/henrygd/beszel/blob/main/LICENSE)
-[![Crowdin](https://badges.crowdin.net/beszel/localized.svg)](https://crowdin.com/project/beszel)
+直接复用 Beszel 的 Logo、导航、登录布局、主机表格、“添加系统”弹窗、网络监控表格、监控弹窗、安装菜单和历史图表。没有重新设计主题或另写一套 CSS。
 
-![Screenshot of Beszel dashboard and system page, side by side. The dashboard shows metrics from multiple connected systems, while the system page shows detailed metrics for a single system.](https://henrygd-assets.b-cdn.net/beszel/screenshot-new.png)
+- 公开看板免登录；首页直接显示 Oracle 详情（Oracle 未公开时显示排序第一的公开主机），无公开主机显示空状态。隐藏“全部服务器”链接，点击品牌回首页；保留其他主机的 `/system/:id` 详情链接。
+- 保留 CPU、内存、磁盘、网络、负载、在线状态、Agent 自动识别的主机名／硬件和历史图表。
+- 管理员可以新增、编辑、暂停／恢复、删除主机；Docker／二进制、公钥／令牌、Compose／docker run／Linux／Homebrew／Windows／FreeBSD 安装入口保留。
+- 通用令牌支持临时和持久模式，保留指纹清除与令牌轮换；自动注册的主机默认未公开。
+- 网络监控保留过滤、视图／排序、ICMP／TCP／HTTP／DNS、批量新增、多主机添加、编辑、暂停／恢复、删除、复制批量配置、间隔、响应、1 小时平均／最大／最小、丢包、证书、更新时间，以及原版历史与目标／系统比较。
+- 公开网络表格不显示“目标”列，不再生成“探测 1”占位名称；后台仍保留目标输入。探测显示名称和公开开关在原版监控弹窗中配置。
+- 浏览器偏好保存在本地，不写入共享账户。
+- 普通账户入口、注册、OAuth、告警执行、通知、心跳、容器／SMART／高级运维页面关闭，已有记录保留。
 
-## Features
+## 本地预览
 
-- **Lightweight**: Smaller and less resource-intensive than leading solutions.
-- **Simple**: Easy setup with little manual configuration required.
-- **Alerts**: Configurable alerts for most metrics. Supports many notification services.
-- **Docker stats**: Tracks CPU, memory, and network usage history for each container.
-- **Network monitoring**: Monitor response time and interruptions directly from agents.
-- **S.M.A.R.T.**: Disk health data and notifications on drive failure.
-- **Multi-user**: Users manage their own systems. Admins can share systems across users.
-- **OAuth / OIDC**: Supports many OAuth2 providers. Password auth can be disabled.
-- **Automatic backups**: Save to and restore from disk or S3-compatible storage.
-<!-- - **REST API**: Use or update your data in your own scripts and applications. -->
+已运行的预览：<http://127.0.0.1:8091/>，管理员：<http://127.0.0.1:8091/chenv-admin>。
+连续点击 Logo 5 次（每次间隔不超过 3 秒）也能打开管理员登录，手机同样支持。
+管理员使用现有 PocketBase 超级管理员邮箱和密码。公开导航不提供管理员链接。
 
-## Architecture
+本地预览使用生产数据库副本，主机已暂停，避免连接生产 Agent。`.tmp` 内数据库／私钥／备份不加入 Git、不进入 Docker 镜像，不应对外分发。
 
-Beszel consists of two main components: the **hub** and the **agent**.
+本地重新构建：
 
-- **Hub**: A web application built on [PocketBase](https://pocketbase.io/) that provides a dashboard for viewing and managing connected systems.
-- **Agent**: Runs on each system you want to monitor and communicates system metrics to the hub.
+```powershell
+cd T:\monitor
+npm.cmd --prefix internal/site ci
+npm.cmd --prefix internal/site run build
+go build -tags no_ui -o .tmp/monitor.exe ./internal/cmd/hub
+.tmp/monitor.exe serve --http=127.0.0.1:8091 --dir=T:/monitor/.tmp/migration-copy
+```
 
-## Getting started
+修改页面后重新构建 Hub，因为前端产物嵌入二进制中；先停止运行中的旧进程再替换二进制。
 
-The [quick start guide](https://beszel.dev/guide/getting-started) and other documentation is available on our website, [beszel.dev](https://beszel.dev). You'll be up and running in a few minutes.
+## Docker
 
-## Screenshots
+```sh
+cp .env.example .env
+docker compose build
+docker compose up -d
+```
 
-![Dashboard](https://beszel.dev/image/dashboard.png)
-![System page](https://beszel.dev/image/system-full.png)
-![Notification Settings](https://beszel.dev/image/settings-notifications.png)
+数据持久化在 `./monitor_data`。默认只绑定本机 8091；用反向代理／域名访问时保留 WebSocket 与请求头。首次空库创建超级管理员：
 
-## Supported metrics
+```sh
+docker compose exec monitor /monitor superuser create admin@example.com 'your-own-password' --dir=/monitor_data
+```
 
-- **CPU usage** - Host system and Docker / Podman containers.
-- **Memory usage** - Host system and containers. Includes swap and ZFS ARC.
-- **Disk usage** - Host system. Supports multiple partitions and devices.
-- **Disk I/O** - Host system. Supports multiple partitions and devices.
-- **Network usage** - Host system and containers.
-- **Load average** - Host system.
-- **Temperature** - Host system sensors.
-- **Fan speed** - Host system sensors (Linux, via `/sys/class/hwmon`).
-- **GPU usage / power draw** - Nvidia, AMD, and Intel.
-- **Battery charge** - Host system and some peripherals.
-- **Containers** - Status and metrics of all running Docker / Podman containers.
-- **S.M.A.R.T.** - Host system disk health (includes eMMC wear/EOL and Linux mdraid array health via sysfs when available).
-- **ZFS** - Pool capacity, usage, health, I/O throughput, scrub status, and per-dataset usage.
+该命令中的邮箱／密码仅为占位内容，请使用自己的信息。已有库无需另建普通用户或 AUTO_LOGIN 账户。
 
-## Help and discussion
+## 接口与隐私
 
-Please search existing issues and discussions before opening a new one. I try my best to respond, but may not always have time to do so.
+公开接口：`/api/chenv/public/config`、`systems`、`systems/:id`、`monitors`、`monitor-stats?ids=...&range=...`。匿名只读、字段白名单、查询范围有界。
 
-#### Bug reports and feature requests
+管理接口：`/api/chenv/admin`，全部验证 `_superusers`。超级管理员认证与公开数据请求分开。普通用户和旧令牌不能读取原始集合；`/_/` 网页入口关闭。
 
-Bug reports and feature requests can be posted on [GitHub issues](https://github.com/henrygd/beszel/issues).
+默认在服务端隐藏 IP、连接地址、端口、探测目标与 DNS 地址。主机名和硬件由 Agent 提供，继续显示；主机名若实际是 IP 则脱敏。比较使用服务端产生的 opaque key，不向访客传递目标地址。未公开主机／探测及其历史不可从匿名接口读取。
 
-#### Support and general discussion
+显示开关只能控制页面内容，浏览器地址栏由部署域名决定。保留原服务器 ID 和 `/system/:id` 链接。
 
-Support requests and general discussion can be posted on [GitHub discussions](https://github.com/henrygd/beszel/discussions) or the community-run [Matrix room](https://matrix.to/#/#beszel:matrix.org): `#beszel:matrix.org`.
+## 迁移、更新与回滚
 
-## License
+详见 [部署与回滚](docs/DEPLOYMENT.md) 和 [验证记录](docs/VALIDATION.md)。当前仅本地预览，尚未替换线上程序。
 
-Beszel is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
+上游：<https://github.com/henrygd/beszel>。许可证：[MIT](LICENSE)。

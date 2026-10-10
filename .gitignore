@@ -22,3 +22,9 @@ agent/lhm/bin
 dockerfile_agent_dev
 .cr-release-packages
 .tmp
+# Local previews and browser test artifacts
+outputs/
+**/test-results/
+**/playwright-report/
+monitor_data/
+.env

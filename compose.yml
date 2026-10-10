@@ -1,0 +1,20 @@
+services:
+  monitor:
+    image: chenv/monitor:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: monitor
+    restart: unless-stopped
+    ports:
+      - "${MONITOR_BIND:-127.0.0.1}:${MONITOR_PORT:-8091}:8090"
+    environment:
+      CHENV_MODE: "true"
+    volumes:
+      - ./monitor_data:/monitor_data
+    healthcheck:
+      test: ["CMD", "/monitor", "health", "--url", "http://127.0.0.1:8090/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s

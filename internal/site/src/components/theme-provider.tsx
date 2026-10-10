@@ -31,6 +31,9 @@ export function ThemeProvider({
 }: ThemeProviderProps) {
 	const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem(storageKey) as Theme) || defaultTheme)
 	const [systemDark, setSystemDark] = useState(() => window.matchMedia("(prefers-color-scheme: dark)").matches)
+	useEffect(() => {
+		if (!localStorage.getItem(storageKey)) setTheme(defaultTheme)
+	}, [defaultTheme, storageKey])
 
 	useEffect(() => {
 		const media = window.matchMedia("(prefers-color-scheme: dark)")

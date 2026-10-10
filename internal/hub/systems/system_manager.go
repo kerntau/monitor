@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/henrygd/beszel/internal/hub/utils"
 	"github.com/henrygd/beszel/internal/hub/ws"
 
 	"github.com/henrygd/beszel/internal/entities/monitor"
@@ -174,7 +175,9 @@ func (sm *SystemManager) onTokenRotated(e *core.RecordEvent) error {
 // It initializes the record with default values: empty info and pending status.
 func (sm *SystemManager) onRecordCreate(e *core.RecordEvent) error {
 	e.Record.Set("info", system.Info{})
-	e.Record.Set("status", pending)
+	if e.Record.GetString("status") != paused {
+		e.Record.Set("status", pending)
+	}
 	return e.Next()
 }
 
@@ -424,6 +427,10 @@ func (sm *SystemManager) createSSHClientConfig() error {
 // confirmed recovery still produces an "up" notification.
 // Monitor incidents remain open: a missing observation does not establish recovery.
 func deactivateAlerts(app core.App, systemID string, preserveStatusAlert bool) error {
+	mode, _ := utils.GetEnv("CHENV_MODE")
+	if mode != "false" {
+		return nil
+	}
 	// Note: Direct SQL updates don't trigger SSE, so we use the PocketBase API
 	// _, err := app.DB().NewQuery(fmt.Sprintf("UPDATE alerts SET triggered = false WHERE system = '%s'", systemID)).Execute()
 

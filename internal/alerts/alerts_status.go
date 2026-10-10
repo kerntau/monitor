@@ -31,6 +31,9 @@ func (am *AlertManager) Stop() {
 
 // HandleStatusAlerts manages the logic when system status changes.
 func (am *AlertManager) HandleStatusAlerts(newStatus string, systemRecord *core.Record) error {
+	if am.disabled {
+		return nil
+	}
 	if newStatus != "up" && newStatus != "down" {
 		return nil
 	}
