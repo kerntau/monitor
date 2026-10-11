@@ -39,7 +39,11 @@ export default function PublicDetail({ system }: { system: System }) {
 		[system.history]
 	)
 	const record = { ...system, host: system.host || "", port: system.port || "" } as unknown as SystemRecord
-	const networkLatency = system.monitors?.find((monitor) => Number.isFinite(monitor.res) && monitor.res > 0)?.res
+	const networkLatency = system.monitors?.length
+		? (system.monitors.find((monitor) => Number.isFinite(monitor.res) && monitor.res > 0)?.res ??
+			system.monitors.find((monitor) => Number.isFinite(monitor.resAvg1h) && (monitor.resAvg1h || 0) > 0)?.resAvg1h ??
+			Number.NaN)
+		: undefined
 	const chartData: ChartData = {
 		systemStats,
 		containerData: [],

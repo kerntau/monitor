@@ -100,7 +100,7 @@ export default function InfoBar({
 				value: formatMicroseconds(networkLatency ?? Number.NaN),
 				Icon: GaugeIcon,
 				label: "网络延迟",
-				hide: !(typeof networkLatency === "number" && Number.isFinite(networkLatency) && networkLatency > 0),
+				hide: networkLatency === undefined,
 			},
 			{
 				value: hostname,

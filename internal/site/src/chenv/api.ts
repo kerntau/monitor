@@ -31,6 +31,7 @@ export type Probe = {
 	protocol: string
 	enabled: boolean
 	res: number
+	resAvg1h?: number
 	loss1h: number
 	updated: string
 	target?: string
