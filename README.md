@@ -2,6 +2,7 @@
 
 基于 Beszel v0.21.0 的公开监控看板二开，保留 MIT 许可证及原版权声明。
 项目仓库：[kerntau/monitor](https://github.com/kerntau/monitor)，主分支：`main`。默认站点品牌为 **chenv**，可在后台设置名称、favicon 和主题。
+在线预览：[ss.chenv.cn](https://ss.chenv.cn/)
 
 ## 界面与基础功能
 
