@@ -102,21 +102,6 @@ make build
 | MONITOR_BIND | 127.0.0.1 | Docker 主机绑定地址 |
 | MONITOR_PORT | 8091 | Docker 主机端口，容器内为 8090 |
 
-## 07. ENGINEERING CONTRACT // 工程协作契约
-
-- 不提交 monitor_data、数据库、令牌、Agent 私钥或生产配置。
-- 公开开关不能替代服务端字段过滤；新增接口必须补充匿名访问验证。
-- 修改主机、探测或认证逻辑后运行 Go 测试并检查管理员与匿名流程。
-- Docker 镜像、回滚和数据迁移需要在目标环境单独验证。
-
-## 08. ROADMAP // 系统演进路线
-
-- [x] 公开主机看板、历史图表和网络监控。
-- [x] 管理员配置、令牌轮换和匿名字段白名单。
-- [x] Docker Compose 与本地构建说明。
-- [ ] 增加跨平台构建和升级回滚检查。
-- [ ] 补充公开接口契约与自动化安全回归。
-
-## 09. LICENSE // 许可证
+## 07. LICENSE // 许可证
 
 本项目基于 MIT License，许可证文本见 LICENSE。上游项目为 [henrygd/beszel](https://github.com/henrygd/beszel)。
