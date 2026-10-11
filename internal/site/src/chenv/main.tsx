@@ -192,9 +192,8 @@ function Dashboard() {
 					)}
 				</main>
 				{!isAdmin && (
-					<footer className="container pb-8 pt-2">
-						<div className="mx-auto flex w-fit max-w-full items-center justify-center gap-1.5 rounded-full border bg-card/70 px-3 py-1.5 text-xs text-muted-foreground shadow-xs">
-							<span className="size-1.5 rounded-full bg-primary/50" aria-hidden="true" />
+					<footer className="container pb-4 pt-1">
+						<div className="mx-auto flex w-fit max-w-full items-center justify-center gap-1.5 rounded-full border bg-card/60 px-2.5 py-1 text-xs leading-none text-muted-foreground shadow-xs">
 							<span>Powered by</span>
 							<a
 								className="inline-flex min-w-0 items-center gap-1.5 font-medium text-foreground transition-colors hover:text-primary hover:underline"
