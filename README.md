@@ -1,100 +1,122 @@
-# monitor
+<div align="center">
 
-基于 Beszel v0.21.0 的公开监控看板二开，保留 MIT 许可证及原版权声明。
-项目仓库：[kerntau/monitor](https://github.com/kerntau/monitor)，主分支：`main`。默认站点品牌为 **chenv**，可在后台设置名称、favicon 和主题。
-在线预览：[ss.chenv.cn](https://ss.chenv.cn/)
+# MONITOR // CHENV
 
-界面字体优先使用系统中的 [MiSans](https://hyperos.mi.com/font/download)，未安装时回退到 Inter 和系统无衬线字体。
+**基于 Beszel 二开的公开主机与网络监控看板。**<br>
+*A Beszel-derived public dashboard for host and network monitoring.*
 
-## 界面与基础功能
+[![GitHub](https://img.shields.io/badge/GitHub-kerntau%2Fmonitor-181717?style=for-the-badge&logo=github)](https://github.com/kerntau/monitor)
+[![Go](https://img.shields.io/badge/Go-1.27.1-00ADD8?style=for-the-badge&logo=go&logoColor=ffffff)](https://go.dev)
+[![Node.js](https://img.shields.io/badge/Node.js-22-339933?style=for-the-badge&logo=nodedotjs&logoColor=ffffff)](https://nodejs.org)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=ffffff)](https://www.docker.com)
+[![MIT](https://img.shields.io/badge/License-MIT-10B981?style=for-the-badge)](LICENSE)
 
-直接复用 Beszel 的 Logo、导航、登录布局、主机表格、“添加系统”弹窗、网络监控表格、监控弹窗、安装菜单和历史图表。没有重新设计主题或另写一套 CSS。
+</div>
 
-- 公开看板免登录；首页直接显示 Oracle 详情（Oracle 未公开时显示排序第一的公开主机），无公开主机显示空状态。隐藏“全部服务器”链接，点击品牌回首页；保留其他主机的 `/system/:id` 详情链接。
-- 保留 CPU、内存、磁盘、网络、负载、在线状态、Agent 自动识别的主机名／硬件和历史图表。
-- 管理员可以新增、编辑、暂停／恢复、删除主机；Docker／二进制、公钥／令牌、Compose／docker run／Linux／Homebrew／Windows／FreeBSD 安装入口保留。
-- 通用令牌支持临时和持久模式，保留指纹清除与令牌轮换；自动注册的主机默认未公开。
-- 网络监控保留过滤、视图／排序、ICMP／TCP／HTTP／DNS、批量新增、多主机添加、编辑、暂停／恢复、删除、复制批量配置、间隔、响应、1 小时平均／最大／最小、丢包、证书、更新时间，以及原版历史与目标／系统比较。
-- 公开网络表格不显示“目标”列，不再生成“探测 1”占位名称；后台仍保留目标输入。探测显示名称和公开开关在原版监控弹窗中配置。
-- 浏览器偏好保存在本地，不写入共享账户。
-- 普通账户入口、注册、OAuth、告警执行、通知、心跳、容器／SMART／高级运维页面关闭，已有记录保留。
+---
 
-## 本地预览
+## 01. PROJECT PURPOSE // 项目定位
 
-默认本地访问：<http://127.0.0.1:8091/>，管理员：<http://127.0.0.1:8091/chenv-admin>。
-连续点击 Logo 5 次（每次间隔不超过 3 秒）也能打开管理员登录，手机同样支持。
-管理员使用现有 PocketBase 超级管理员邮箱和密码。公开导航不提供管理员链接。
+monitor 是基于 Beszel v0.21.0 的公开监控看板二开，默认品牌为 chenv。它保留主机指标、网络探测、历史图表和 Agent 安装入口，并增加公开数据字段白名单、匿名只读接口和管理员设置。
 
-数据库、私钥和备份保存在部署者自己的数据目录中，不随源码分发。测试现有数据时请使用副本，并暂停主机，避免同时连接生产 Agent。
+在线预览：[ss.chenv.cn](https://ss.chenv.cn/)。
 
-本地构建需要 Node.js 22 和 Go 1.27.1。Windows PowerShell：
+## 02. TECHNICAL ARCHITECTURE // 技术架构
 
-```powershell
+~~~mermaid
+graph TD
+    A[Beszel Agent] --> B[Go Hub]
+    C[Admin and public web UI] --> B
+    B --> D[PocketBase data]
+    B --> E[Public allowlisted API]
+    E --> F[Anonymous dashboard]
+    G[Network probes] --> B
+~~~
+
+- Go Hub 嵌入 internal/site 的前端产物。
+- PocketBase 保存主机、网络监控和管理员数据。
+- 匿名接口只返回公开主机和探测的字段白名单，并隐藏地址、端口和目标。
+- compose.yml 默认将容器映射到本机 127.0.0.1:8091。
+
+## 03. TECHNICAL MATRIX // 技术矩阵
+
+| 模块 | 技术 | 说明 |
+| --- | --- | --- |
+| Hub | Go 1.27.1 + PocketBase | API、认证、任务和数据存储 |
+| Agent | Beszel agent | CPU、内存、磁盘、网络和系统信息 |
+| 前端 | internal/site | 监控表格、图表和管理界面 |
+| 网络监控 | ICMP、TCP、HTTP、DNS | 过滤、历史、延迟和丢包 |
+| 部署 | Docker Compose 或 Go 二进制 | 默认数据目录 monitor_data |
+| 安全 | 超级管理员与字段白名单 | 公开接口匿名只读 |
+
+## 04. REPOSITORY TOPOLOGY // 源码工程拓扑
+
+~~~text
+.
+├── internal/site/             # 前端源码与构建产物
+├── internal/cmd/hub/          # Go Hub 入口
+├── internal/cmd/agent/        # Agent 入口
+├── agent/                     # Agent 构建资源
+├── docs/                      # 部署与验证文档
+├── Dockerfile                 # 多阶段镜像构建
+├── compose.yml                # 本地 Docker Compose
+├── Makefile                   # Go/前端构建和测试
+└── go.mod                     # Go 模块
+~~~
+
+## 05. CLONE & QUICK START // 极速装配指南
+
+环境要求：Go 1.27.1、Node.js 22；Docker 部署需要 Docker Engine。
+
+~~~bash
 git clone https://github.com/kerntau/monitor.git
 cd monitor
-npm.cmd --prefix internal/site ci
-npm.cmd --prefix internal/site run build
-New-Item -ItemType Directory -Force .tmp | Out-Null
-go build -tags no_ui -o .tmp/monitor.exe ./internal/cmd/hub
-.tmp/monitor.exe superuser create admin@example.com 'your-own-password' --dir=./monitor_data
-.tmp/monitor.exe serve --http=127.0.0.1:8091 --dir=./monitor_data
-```
+npm install --prefix internal/site
+npm run build --prefix internal/site
+go build -tags no_ui -o monitor ./internal/cmd/hub
+./monitor superuser create admin@example.com 'change-this-password' --dir=./monitor_data
+./monitor serve --http=127.0.0.1:8091 --dir=./monitor_data
+~~~
 
-修改页面后重新构建 Hub，因为前端产物嵌入二进制中；先停止运行中的旧进程再替换二进制。
+也可以使用 Docker Compose：
 
-## Docker
-
-```sh
-git clone https://github.com/kerntau/monitor.git
-cd monitor
+~~~bash
 cp .env.example .env
 docker compose build
 docker compose up -d
-```
+~~~
 
-数据持久化在 `./monitor_data`。默认只绑定本机 8091；用反向代理／域名访问时保留 WebSocket 与请求头。首次空库创建超级管理员：
+## 06. DEPLOYMENT & VERIFICATION // 部署与验证
 
-```sh
-docker compose exec monitor /monitor superuser create admin@example.com 'your-own-password' --dir=/monitor_data
-```
+~~~bash
+make test
+make build
+~~~
 
-该命令中的邮箱／密码仅为占位内容，请使用自己的信息。已有库无需另建普通用户或 AUTO_LOGIN 账户。登录后台后新增服务器、复制 Agent 安装配置，再在“展示设置”中开启公开显示。
+前端改动后必须重新构建 Hub，因为前端产物会嵌入二进制。首次部署前备份 monitor_data/；通过反向代理或域名访问时保留 WebSocket 和请求头。
 
-默认 `MONITOR_BIND=127.0.0.1`、`MONITOR_PORT=8091`，可在 `.env` 中修改。通过其他设备直接访问时可将 `MONITOR_BIND` 改为 `0.0.0.0`；使用域名部署时可保持本机绑定并配置 HTTPS 反向代理。
+默认配置：
 
-## 接口与隐私
-
-公开接口：`/api/chenv/public/config`、`systems`、`systems/:id`、`monitors`、`monitor-stats?ids=...&range=...`。匿名只读、字段白名单、查询范围有界。
-
-管理接口：`/api/chenv/admin`，全部验证 `_superusers`。超级管理员认证与公开数据请求分开。普通用户和旧令牌不能读取原始集合；`/_/` 网页入口关闭。
-
-默认在服务端隐藏 IP、连接地址、端口、探测目标与 DNS 地址。主机名和硬件由 Agent 提供，继续显示；主机名若实际是 IP 则脱敏。比较使用服务端产生的 opaque key，不向访客传递目标地址。未公开主机／探测及其历史不可从匿名接口读取。
-
-显示开关只能控制页面内容，浏览器地址栏由部署域名决定。保留原服务器 ID 和 `/system/:id` 链接。
-
-## 迁移、更新与回滚
-
-详见 [部署与回滚](docs/DEPLOYMENT.md) 和 [验证记录](docs/VALIDATION.md)。上线前备份整个数据目录和原程序。Docker 部署文件已提供，当前开发环境没有 Docker Engine，尚未实际运行镜像构建验证。
-
-上游：<https://github.com/henrygd/beszel>。许可证：[MIT](LICENSE)。
-
-## 开发验证
-
-在提交改动前可运行以下检查：
-
-```sh
-make test                 # Go 单元与集成测试
-make build SKIP_WEB=true  # 仅构建 Hub，跳过前端
-make build                # 构建前端并生成 Hub
-```
-
-前端源码位于 `internal/site/`。修改前端后必须重新执行前端构建，产物会嵌入 Hub 二进制；部署时请停止旧进程后再替换程序。Go 模块要求 Go 1.27.1，前端构建要求 Node.js 22。
-
-## 配置速查
-
-| 环境变量 | 默认值 | 用途 |
+| 变量 | 默认值 | 作用 |
 | --- | --- | --- |
-| `MONITOR_BIND` | `127.0.0.1` | Docker 对外绑定地址 |
-| `MONITOR_PORT` | `8091` | Docker 主机端口（容器内为 8090） |
+| MONITOR_BIND | 127.0.0.1 | Docker 主机绑定地址 |
+| MONITOR_PORT | 8091 | Docker 主机端口，容器内为 8090 |
 
-首次启动空数据目录后，使用 `superuser create` 创建管理员；请替换示例邮箱和密码，并妥善备份 `monitor_data/`。不要把数据库、令牌或 Agent 私钥提交到仓库。
+## 07. ENGINEERING CONTRACT // 工程协作契约
+
+- 不提交 monitor_data、数据库、令牌、Agent 私钥或生产配置。
+- 公开开关不能替代服务端字段过滤；新增接口必须补充匿名访问验证。
+- 修改主机、探测或认证逻辑后运行 Go 测试并检查管理员与匿名流程。
+- Docker 镜像、回滚和数据迁移需要在目标环境单独验证。
+
+## 08. ROADMAP // 系统演进路线
+
+- [x] 公开主机看板、历史图表和网络监控。
+- [x] 管理员配置、令牌轮换和匿名字段白名单。
+- [x] Docker Compose 与本地构建说明。
+- [ ] 增加跨平台构建和升级回滚检查。
+- [ ] 补充公开接口契约与自动化安全回归。
+
+## 09. LICENSE // 许可证
+
+本项目基于 MIT License，许可证文本见 LICENSE。上游项目为 [henrygd/beszel](https://github.com/henrygd/beszel)。
