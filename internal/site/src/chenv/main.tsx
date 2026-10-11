@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client"
 import { i18n } from "@lingui/core"
 import { I18nProvider } from "@lingui/react"
 import { useStore } from "@nanostores/react"
-import { Server, RefreshCw } from "lucide-react"
+import { LoaderCircle, Server, RefreshCw } from "lucide-react"
 import { ThemeProvider } from "@/components/theme-provider"
 import Navbar from "./navbar"
 import { Button } from "@/components/ui/button"
@@ -23,6 +23,14 @@ export function Empty({ children }: { children: React.ReactNode }) {
 	return (
 		<div className="min-h-48 grid place-content-center justify-items-center gap-3 text-center text-muted-foreground">
 			{children}
+		</div>
+	)
+}
+function LoadingState({ children }: { children: React.ReactNode }) {
+	return (
+		<div className="min-h-48 grid place-content-center justify-items-center gap-3 text-center text-muted-foreground">
+			<LoaderCircle className="size-7 animate-spin opacity-70" aria-hidden="true" />
+			<span>{children}</span>
 		</div>
 	)
 }
@@ -132,7 +140,7 @@ function Dashboard() {
 				)}
 				<main className={isAdmin ? "relative" : "container relative pb-8"} id="main">
 					{isAdmin ? (
-						<Suspense fallback={<Empty>加载管理后台…</Empty>}>
+						<Suspense fallback={<LoadingState>加载管理后台…</LoadingState>}>
 							<Admin config={config} refreshConfig={() => setReload((v) => v + 1)} />
 						</Suspense>
 					) : path !== "/" && !systemId ? (
@@ -160,7 +168,7 @@ function Dashboard() {
 								</div>
 							)}
 							{!systems && !error ? (
-								<Empty>加载看板…</Empty>
+								<LoadingState>加载看板…</LoadingState>
 							) : !systems?.length && !systemId ? (
 								<Card>
 									<Empty>
@@ -172,12 +180,12 @@ function Dashboard() {
 							) : selectedId ? (
 								selected ? (
 									<>
-										<Suspense fallback={<Empty>加载图表…</Empty>}>
+										<Suspense fallback={<LoadingState>加载图表…</LoadingState>}>
 											<Detail system={selected} />
 										</Suspense>
 									</>
 								) : (
-									!error && <Empty>加载服务器指标…</Empty>
+									!error && <LoadingState>加载服务器指标…</LoadingState>
 								)
 							) : null}
 						</>
@@ -186,10 +194,9 @@ function Dashboard() {
 				{!isAdmin && (
 					<footer className="container text-center text-xs text-muted-foreground pb-6">
 						Powered by{" "}
-						<a className="hover:underline" href="https://github.com/henrygd/beszel" target="_blank" rel="noreferrer">
-							Beszel
-						</a>{" "}
-						· chenv
+						<a className="hover:underline" href="https://github.com/kerntau/monitor" target="_blank" rel="noreferrer">
+							kerntau/monitor
+						</a>
 					</footer>
 				)}
 			</div>
