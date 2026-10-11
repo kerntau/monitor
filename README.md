@@ -77,3 +77,24 @@ docker compose exec monitor /monitor superuser create admin@example.com 'your-ow
 详见 [部署与回滚](docs/DEPLOYMENT.md) 和 [验证记录](docs/VALIDATION.md)。上线前备份整个数据目录和原程序。Docker 部署文件已提供，当前开发环境没有 Docker Engine，尚未实际运行镜像构建验证。
 
 上游：<https://github.com/henrygd/beszel>。许可证：[MIT](LICENSE)。
+
+## 开发验证
+
+在提交改动前可运行以下检查：
+
+```sh
+make test                 # Go 单元与集成测试
+make build SKIP_WEB=true  # 仅构建 Hub，跳过前端
+make build                # 构建前端并生成 Hub
+```
+
+前端源码位于 `internal/site/`。修改前端后必须重新执行前端构建，产物会嵌入 Hub 二进制；部署时请停止旧进程后再替换程序。Go 模块要求 Go 1.27.1，前端构建要求 Node.js 22。
+
+## 配置速查
+
+| 环境变量 | 默认值 | 用途 |
+| --- | --- | --- |
+| `MONITOR_BIND` | `127.0.0.1` | Docker 对外绑定地址 |
+| `MONITOR_PORT` | `8091` | Docker 主机端口（容器内为 8090） |
+
+首次启动空数据目录后，使用 `superuser create` 创建管理员；请替换示例邮箱和密码，并妥善备份 `monitor_data/`。不要把数据库、令牌或 Agent 私钥提交到仓库。
