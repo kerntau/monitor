@@ -193,7 +193,7 @@ function Dashboard() {
 				</main>
 				{!isAdmin && (
 					<footer className="container pb-8 pt-2">
-						<div className="mx-auto flex w-fit max-w-full items-center justify-center gap-2 rounded-full border bg-card/70 px-4 py-2 text-xs text-muted-foreground shadow-xs">
+						<div className="mx-auto flex w-fit max-w-full items-center justify-center gap-1.5 rounded-full border bg-card/70 px-3 py-1.5 text-xs text-muted-foreground shadow-xs">
 							<span className="size-1.5 rounded-full bg-primary/50" aria-hidden="true" />
 							<span>Powered by</span>
 							<a
