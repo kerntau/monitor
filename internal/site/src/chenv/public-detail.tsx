@@ -7,7 +7,6 @@ import { RootDiskCharts, DiskUsageChart, DiskIOChart } from "@/components/routes
 import { BandwidthChart } from "@/components/routes/system/charts/network-charts"
 import { LoadAverageChart } from "@/components/routes/system/charts/load-average-chart"
 import type { SystemData } from "@/components/routes/system/use-system-data"
-import ChenvNetwork from "./network"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { $chartTime, $maxValues } from "@/lib/stores"
 import { parseSemVer } from "@/lib/utils"
@@ -40,6 +39,7 @@ export default function PublicDetail({ system }: { system: System }) {
 		[system.history]
 	)
 	const record = { ...system, host: system.host || "", port: system.port || "" } as unknown as SystemRecord
+	const networkLatency = system.monitors?.find((monitor) => Number.isFinite(monitor.res) && monitor.res > 0)?.res
 	const chartData: ChartData = {
 		systemStats,
 		containerData: [],
@@ -76,6 +76,7 @@ export default function PublicDetail({ system }: { system: System }) {
 				displayMode={displayMode}
 				setDisplayMode={setDisplayMode}
 				details={(system.hardware || null) as SystemDetailsRecord | null}
+				networkLatency={networkLatency}
 				allowRealtime={false}
 			/>
 			{displayMode === "default" ? (
@@ -89,7 +90,6 @@ export default function PublicDetail({ system }: { system: System }) {
 						<SwapChart {...coreProps} systemStats={systemStats} />
 						<LoadAverageChart {...coreProps} />
 					</div>
-					<ChenvNetwork systemId={system.id} />
 				</>
 			) : (
 				<Tabs defaultValue="core" className="contents">
@@ -110,7 +110,6 @@ export default function PublicDetail({ system }: { system: System }) {
 					<TabsContent value="network">
 						<div className="grid gap-4">
 							<BandwidthChart {...coreProps} systemStats={systemStats} />
-							<ChenvNetwork systemId={system.id} />
 						</div>
 					</TabsContent>
 					<TabsContent value="disk">

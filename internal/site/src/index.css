@@ -64,7 +64,7 @@
 }
 
 @theme inline {
-	--font-sans: TwemojiCountryFlags, Inter, InterVariable, sans-serif;
+	--font-sans: TwemojiCountryFlags, MiSans, Inter, InterVariable, sans-serif;
 
 	--breakpoint-xs: 26.6rem;
 	--breakpoint-450: 28rem;
@@ -136,7 +136,7 @@
 
 	@supports (font-variation-settings: normal) {
 		:root {
-			font-family: TwemojiCountryFlags, Inter, InterVariable, sans-serif;
+			font-family: TwemojiCountryFlags, MiSans, Inter, InterVariable, sans-serif;
 		}
 	}
 

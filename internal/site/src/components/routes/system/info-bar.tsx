@@ -5,6 +5,7 @@ import {
 	ChevronRightSquareIcon,
 	ClockArrowUp,
 	CpuIcon,
+	GaugeIcon,
 	GlobeIcon,
 	MemoryStickIcon,
 	MonitorIcon,
@@ -27,7 +28,7 @@ import { FreeBsdIcon, TuxIcon, WebSocketIcon, WindowsIcon } from "@/components/u
 import { Separator } from "@/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { ConnectionType, connectionTypeLabels, Os, SystemStatus } from "@/lib/enums"
-import { cn, formatBytes, getHostDisplayValue, secondsToUptimeString, toFixedFloat } from "@/lib/utils"
+import { cn, formatBytes, formatMicroseconds, getHostDisplayValue, secondsToUptimeString, toFixedFloat } from "@/lib/utils"
 import type { ChartData, SystemDetailsRecord, SystemRecord } from "@/types"
 
 export default function InfoBar({
@@ -38,6 +39,7 @@ export default function InfoBar({
 	displayMode,
 	setDisplayMode,
 	details,
+	networkLatency,
 	allowRealtime = true,
 }: {
 	system: SystemRecord
@@ -47,6 +49,7 @@ export default function InfoBar({
 	displayMode: "default" | "tabs"
 	setDisplayMode: (mode: "default" | "tabs") => void
 	details: SystemDetailsRecord | null
+	networkLatency?: number
 	allowRealtime?: boolean
 }) {
 	const { t } = useLingui()
@@ -94,6 +97,12 @@ export default function InfoBar({
 		const info = [
 			{ value: getHostDisplayValue(system), Icon: GlobeIcon },
 			{
+				value: formatMicroseconds(networkLatency ?? Number.NaN),
+				Icon: GaugeIcon,
+				label: "网络延迟",
+				hide: !(typeof networkLatency === "number" && Number.isFinite(networkLatency) && networkLatency > 0),
+			},
+			{
 				value: hostname,
 				Icon: MonitorIcon,
 				label: "Hostname",
@@ -126,7 +135,7 @@ export default function InfoBar({
 		}
 
 		return info
-	}, [system, details, t])
+	}, [system, details, networkLatency, t])
 
 	let translatedStatus: string = system.status
 	if (system.status === SystemStatus.Up) {

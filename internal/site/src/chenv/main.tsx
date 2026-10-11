@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client"
 import { i18n } from "@lingui/core"
 import { I18nProvider } from "@lingui/react"
 import { useStore } from "@nanostores/react"
-import { LoaderCircle, Server, RefreshCw } from "lucide-react"
+import { GithubIcon, LoaderCircle, Server, RefreshCw } from "lucide-react"
 import { ThemeProvider } from "@/components/theme-provider"
 import Navbar from "./navbar"
 import { Button } from "@/components/ui/button"
@@ -192,11 +192,20 @@ function Dashboard() {
 					)}
 				</main>
 				{!isAdmin && (
-					<footer className="container text-center text-xs text-muted-foreground pb-6">
-						Powered by{" "}
-						<a className="hover:underline" href="https://github.com/kerntau/monitor" target="_blank" rel="noreferrer">
-							kerntau/monitor
-						</a>
+					<footer className="container pb-8 pt-2">
+						<div className="mx-auto flex w-fit max-w-full items-center justify-center gap-2 rounded-full border bg-card/70 px-4 py-2 text-xs text-muted-foreground shadow-xs">
+							<span className="size-1.5 rounded-full bg-primary/50" aria-hidden="true" />
+							<span>Powered by</span>
+							<a
+								className="inline-flex min-w-0 items-center gap-1.5 font-medium text-foreground transition-colors hover:text-primary hover:underline"
+								href="https://github.com/kerntau/monitor"
+								target="_blank"
+								rel="noreferrer"
+							>
+								<GithubIcon className="size-3.5 shrink-0" aria-hidden="true" />
+								<span className="truncate">kerntau/monitor</span>
+							</a>
+						</div>
 					</footer>
 				)}
 			</div>

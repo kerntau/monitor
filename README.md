@@ -4,6 +4,8 @@
 项目仓库：[kerntau/monitor](https://github.com/kerntau/monitor)，主分支：`main`。默认站点品牌为 **chenv**，可在后台设置名称、favicon 和主题。
 在线预览：[ss.chenv.cn](https://ss.chenv.cn/)
 
+界面字体优先使用系统中的 [MiSans](https://hyperos.mi.com/font/download)，未安装时回退到 Inter 和系统无衬线字体。
+
 ## 界面与基础功能
 
 直接复用 Beszel 的 Logo、导航、登录布局、主机表格、“添加系统”弹窗、网络监控表格、监控弹窗、安装菜单和历史图表。没有重新设计主题或另写一套 CSS。
